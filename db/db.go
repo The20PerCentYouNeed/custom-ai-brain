@@ -28,7 +28,6 @@ func InitDB() {
 		host, port, user, password, dbname)
 
 	DB, err = sql.Open("postgres", connStr)
-	// fmt.Println(DB)
 	if err != nil {
 		log.Fatal("Error opening DB: ", err)
 	}
