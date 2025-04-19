@@ -10,5 +10,12 @@ func SetupRouter() *gin.Engine {
 
 	r.GET("/ping", handlers.PingHandler)
 
+	r.POST("/users", handlers.CreateUserHandler)
+
+	r.GET("/documents", handlers.GetDocuments)
+	r.GET("/documents/:id", handlers.GetDocument)
+	r.POST("/documents", handlers.CreateDocument)
+	r.DELETE("/documents/:id", handlers.DestroyDocument)
+
 	return r
 }

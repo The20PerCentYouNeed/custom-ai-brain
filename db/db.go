@@ -1,16 +1,18 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/The20PerCentYouNeed/custom-ai-brain/models"
+
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-var DB *sql.DB
+var DB *gorm.DB
 
 func InitDB() {
 	err := godotenv.Load()
@@ -24,18 +26,23 @@ func InitDB() {
 	password := os.Getenv("DB_PASSWORD")
 	dbname := os.Getenv("DB_NAME")
 
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		host, user, password, dbname, port,
+	)
 
-	DB, err = sql.Open("postgres", connStr)
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Error opening DB: ", err)
+		log.Fatal("Failed to connect to database:", err)
 	}
 
-	err = DB.Ping()
+	err = DB.AutoMigrate(
+		&models.User{},
+		&models.Document{},
+	)
 	if err != nil {
-		log.Fatal("Cannot connect to DB: ", err)
+		log.Fatal("AutoMigration failed:", err)
 	}
 
-	log.Println("Successfully connected to database")
+	log.Println("✅ Connected and migrated with GORM")
 }
