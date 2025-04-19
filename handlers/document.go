@@ -5,6 +5,7 @@ import (
 
 	"github.com/The20PerCentYouNeed/custom-ai-brain/db"
 	"github.com/The20PerCentYouNeed/custom-ai-brain/models"
+	"github.com/The20PerCentYouNeed/custom-ai-brain/services/openai"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,7 +13,7 @@ func GetDocuments(c *gin.Context) {
 	var documents []models.Document
 
 	if err := db.DB.Find(&documents).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch documents"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 
@@ -24,7 +25,7 @@ func GetDocument(c *gin.Context) {
 
 	var document models.Document
 	if err := db.DB.First(&document, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": err})
 		return
 	}
 
@@ -38,8 +39,16 @@ func CreateDocument(c *gin.Context) {
 		return
 	}
 
+	resp, err := openai.GenerateEmbedding(document.Content)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		return
+	}
+
+	document.Embedding = resp
+
 	if err := db.DB.Create(&document).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create document"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 
@@ -51,12 +60,12 @@ func DestroyDocument(c *gin.Context) {
 
 	var document models.Document
 	if err := db.DB.First(&document, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": err})
 		return
 	}
 
 	if err := db.DB.Delete(&document).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete document"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 
