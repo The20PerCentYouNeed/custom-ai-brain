@@ -8,23 +8,35 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-func GenerateEmbedding(text string) (pgvector.Vector, error) {
+func GenerateEmbeddings(texts []string) ([]pgvector.Vector, error) {
 	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
 	resp, err := client.CreateEmbeddings(context.Background(), openai.EmbeddingRequest{
 		Model: openai.AdaEmbeddingV2,
-		Input: []string{text},
+		Input: texts,
 	})
 
 	if err != nil {
+		return nil, err
+	}
+
+	vectors := make([]pgvector.Vector, len(resp.Data))
+	for i, embedding := range resp.Data {
+		float32Array := make([]float32, len(embedding.Embedding))
+		for j, v := range embedding.Embedding {
+			float32Array[j] = float32(v)
+		}
+		vectors[i] = pgvector.NewVector(float32Array)
+	}
+
+	return vectors, nil
+}
+
+func GenerateEmbedding(text string) (pgvector.Vector, error) {
+	vectors, err := GenerateEmbeddings([]string{text})
+	if err != nil {
 		return pgvector.Vector{}, err
 	}
-
-	float32Array := make([]float32, len(resp.Data[0].Embedding))
-	for i, v := range resp.Data[0].Embedding {
-		float32Array[i] = float32(v)
-	}
-
-	return pgvector.NewVector(float32Array), nil
+	return vectors[0], nil
 }
 
 func GenerateAnswer(question string, content string) (string, error) {

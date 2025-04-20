@@ -39,6 +39,7 @@ func InitDB() {
 	err = DB.AutoMigrate(
 		&models.User{},
 		&models.Document{},
+		&models.Chunk{},
 	)
 	if err != nil {
 		log.Fatal("AutoMigration failed:", err)

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/The20PerCentYouNeed/custom-ai-brain/db"
+	tokenizer "github.com/The20PerCentYouNeed/custom-ai-brain/helpers"
 	"github.com/The20PerCentYouNeed/custom-ai-brain/models"
 	"github.com/The20PerCentYouNeed/custom-ai-brain/services/openai"
 	"github.com/gin-gonic/gin"
@@ -39,13 +40,30 @@ func CreateDocument(c *gin.Context) {
 		return
 	}
 
-	resp, err := openai.GenerateEmbedding(document.Content)
+	chunks, err := tokenizer.ChunkByTokens(document.Content, 10, 3)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 
-	document.Embedding = resp
+	vectors, err := openai.GenerateEmbeddings(chunks)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to generate embeddings",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	documentChunks := make([]models.Chunk, len(chunks))
+	for i, chunk := range chunks {
+		documentChunks[i] = models.Chunk{
+			Content:   chunk,
+			Embedding: vectors[i],
+		}
+	}
+
+	document.Chunks = documentChunks
 
 	if err := db.DB.Create(&document).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
