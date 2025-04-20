@@ -12,6 +12,8 @@ func SetupRouter() *gin.Engine {
 
 	r.POST("/users", handlers.CreateUserHandler)
 
+	r.POST("/ask", handlers.AnswerQuestion)
+
 	r.GET("/documents", handlers.GetDocuments)
 	r.GET("/documents/:id", handlers.GetDocument)
 	r.POST("/documents", handlers.CreateDocument)
