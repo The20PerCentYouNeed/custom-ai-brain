@@ -28,23 +28,23 @@ func AnswerQuestion(c *gin.Context) {
 		return
 	}
 
-	var docs []models.Document
+	var chunks []models.Chunk
 
 	err = db.DB.Raw(`
-		SELECT * FROM documents
+		SELECT * FROM chunks
 		ORDER BY embedding <-> ?
 		LIMIT 3
-	`, embedding).Scan(&docs).Error
+	`, embedding).Scan(&chunks).Error
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch documents"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch chunks"})
 		return
 	}
 
 	var contentBuilder strings.Builder
 
-	for _, doc := range docs {
-		contentBuilder.WriteString(doc.Content + "\n\n")
+	for _, chunk := range chunks {
+		contentBuilder.WriteString(chunk.Content + "\n\n")
 	}
 
 	answer, err := openai.GenerateAnswer(input.Question, contentBuilder.String())
