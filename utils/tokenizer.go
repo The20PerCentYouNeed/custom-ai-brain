@@ -4,7 +4,7 @@ import (
 	tiktoken "github.com/pkoukk/tiktoken-go"
 )
 
-func ChunkByTokens(text string, chunkSize int, overlap int) ([]string, error) {
+func ChunkText(text string, chunkSize int, overlap int) ([]string, error) {
 	enc, err := tiktoken.EncodingForModel("text-embedding-3-small")
 	if err != nil {
 		return nil, err
@@ -25,4 +25,13 @@ func ChunkByTokens(text string, chunkSize int, overlap int) ([]string, error) {
 	}
 
 	return chunks, nil
+}
+
+func contains(arr []string, value string) bool {
+	for _, v := range arr {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }

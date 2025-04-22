@@ -19,5 +19,7 @@ func SetupRouter() *gin.Engine {
 	r.POST("/documents", handlers.CreateDocument)
 	r.DELETE("/documents/:id", handlers.DestroyDocument)
 
+	r.POST("/upload", handlers.UploadFile)
+
 	return r
 }

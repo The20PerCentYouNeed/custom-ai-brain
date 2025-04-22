@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/The20PerCentYouNeed/custom-ai-brain/db"
-	tokenizer "github.com/The20PerCentYouNeed/custom-ai-brain/helpers"
 	"github.com/The20PerCentYouNeed/custom-ai-brain/models"
 	"github.com/The20PerCentYouNeed/custom-ai-brain/services/openai"
+	tokenizer "github.com/The20PerCentYouNeed/custom-ai-brain/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -40,7 +40,7 @@ func CreateDocument(c *gin.Context) {
 		return
 	}
 
-	chunks, err := tokenizer.ChunkByTokens(document.Content, 10, 3)
+	chunks, err := tokenizer.ChunkText(document.Content, 10, 3)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
