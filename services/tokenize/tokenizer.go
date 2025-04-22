@@ -26,12 +26,3 @@ func ChunkText(text string, chunkSize int, overlap int) ([]string, error) {
 
 	return chunks, nil
 }
-
-func contains(arr []string, value string) bool {
-	for _, v := range arr {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
