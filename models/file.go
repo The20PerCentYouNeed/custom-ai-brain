@@ -2,11 +2,14 @@ package models
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/The20PerCentYouNeed/custom-ai-brain/utils"
-	pdf "github.com/ledongthuc/pdf"
 )
 
 type File struct {
@@ -20,56 +23,56 @@ type File struct {
 }
 
 func (f *File) ExtractTextFromPDF() (string, error) {
-
 	path := filepath.Join(utils.StoragePath(), "files", f.Uri)
 
-	file, r, err := pdf.Open(path)
-	if err != nil {
+	outputPath := path + ".txt"
 
+	f.Uri = f.Uri + ".txt"
+
+	cmd := exec.Command("pdftotext", "-layout", "-enc", "UTF-8", path, outputPath)
+	err := cmd.Run()
+	if err != nil {
 		return "", err
 	}
 
-	defer file.Close()
-
-	var text string
-	totalPage := r.NumPage()
-	for pageIndex := 1; pageIndex <= totalPage; pageIndex++ {
-		page := r.Page(pageIndex)
-		if page.V.IsNull() {
-			continue
-		}
-
-		content, err := page.GetPlainText(nil)
-		if err != nil {
-			return "", err
-		}
-
-		text += content
+	content, err := os.ReadFile(outputPath)
+	if err != nil {
+		return "", err
 	}
-	fmt.Println(text)
-	// reader := bytes.NewReader(content.Bytes())
 
-	// pdfReader, err := pdf.NewReader(reader, int64(reader.Len()))
-	// if err != nil {
-	// 	return "", err
-	// }
+	// Clean/sanitize the text
+	cleaned := sanitizeText(string(content))
 
-	// var text string
+	// Step 4: Overwrite the .txt file with the cleaned content
+	err = os.WriteFile(outputPath, []byte(cleaned), 0644)
+	if err != nil {
+		return "", err
+	}
 
-	// numPages := pdfReader.NumPage()
-	// for pageIndex := 1; pageIndex <= numPages; pageIndex++ {
-	// 	page := pdfReader.Page(pageIndex)
-	// 	if page.V.IsNull() {
-	// 		continue
-	// 	}
-	// 	pageText, err := page.GetPlainText(nil)
-	// 	if err != nil {
-	// 		return "", err
-	// 	}
-	// 	text += pageText
-	// }
+	fmt.Println("cleaned", cleaned)
+	return cleaned, nil
+}
 
-	return "", nil
+func sanitizeText(input string) string {
+	// 1. Replace all tabs with a single space
+	input = strings.ReplaceAll(input, "\t", " ")
+
+	// 2. Replace multiple spaces with a single space
+	spaceRe := regexp.MustCompile(`\s+`)
+	input = spaceRe.ReplaceAllString(input, " ")
+
+	// 3. Split into lines and remove empty lines
+	lines := strings.Split(input, "\n")
+	var cleanedLines []string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			cleanedLines = append(cleanedLines, line)
+		}
+	}
+
+	// 4. Join back the cleaned lines with a single newline
+	return strings.Join(cleanedLines, "\n")
 }
 
 func (f *File) ExtractTextFromTXT() (string, error) {

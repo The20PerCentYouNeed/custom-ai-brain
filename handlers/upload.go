@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
 
+	"github.com/The20PerCentYouNeed/custom-ai-brain/db"
 	"github.com/The20PerCentYouNeed/custom-ai-brain/models"
 	"github.com/The20PerCentYouNeed/custom-ai-brain/utils"
 	"github.com/gin-gonic/gin"
@@ -74,25 +74,31 @@ func UploadFile(c *gin.Context) {
 		MimeType: contentType,
 	}
 
-	var text string
-
 	switch contentType {
 	case "application/pdf":
-		text, err = fileModel.ExtractTextFromPDF()
+		fileModel.ExtractTextFromPDF()
 	case "text/plain":
-		text, err = fileModel.ExtractTextFromTXT()
+		fileModel.ExtractTextFromTXT()
 	case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-		text, err = fileModel.ExtractTextFromDOCX()
+		fileModel.ExtractTextFromDOCX()
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported file type"})
 		return
 	}
 
-	fmt.Println(text)
+	document := models.Document{
+		File: fileModel,
+	}
 
-	// if err := db.DB.Create(&fileModel).Error; err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
+	if err := document.GenerateChunks(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
+	if err := db.DB.Create(&document).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		return
+	}
+
+	c.JSON(http.StatusCreated, document)
 }
