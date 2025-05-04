@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/The20PerCentYouNeed/custom-ai-brain/models"
-
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

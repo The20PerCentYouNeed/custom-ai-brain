@@ -1,16 +1,11 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/The20PerCentYouNeed/custom-ai-brain/db"
-	"github.com/The20PerCentYouNeed/custom-ai-brain/models"
 	"github.com/The20PerCentYouNeed/custom-ai-brain/services/openai"
-	"github.com/The20PerCentYouNeed/custom-ai-brain/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -32,16 +27,11 @@ func AnswerQuestion(c *gin.Context) {
 		return
 	}
 
-	var results []struct {
-		models.Chunk
-		models.File
-	}
+	var results []string
 
 	err = db.DB.Raw(`
-			SELECT c.*, f.*
+			SELECT c.content
 			FROM chunks c
-			INNER JOIN documents d ON c.document_id = d.id
-			INNER JOIN files f ON f.id = d.file_id
 			ORDER BY c.embedding <-> ?
 			LIMIT 3
 		`, embedding).Scan(&results).Error
@@ -54,17 +44,9 @@ func AnswerQuestion(c *gin.Context) {
 	var contentBuilder strings.Builder
 
 	for _, result := range results {
-
-		content, err := os.ReadFile(filepath.Join(utils.StoragePath(), "files", result.File.Uri))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
-			return
-		}
-
-		contentBuilder.WriteString(string(content)[result.Chunk.StartOffset:result.Chunk.EndOffset] + "\n\n")
-
+		contentBuilder.WriteString(strings.TrimSpace(result) + "\n\n")
 	}
-	fmt.Println("contentBuilder", contentBuilder.String())
+
 	answer, err := openai.GenerateAnswer(input.Question, contentBuilder.String())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

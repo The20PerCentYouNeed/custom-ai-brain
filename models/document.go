@@ -1,46 +1,50 @@
 package models
 
 import (
-	"os"
-	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/The20PerCentYouNeed/custom-ai-brain/services/openai"
-	tokenizer "github.com/The20PerCentYouNeed/custom-ai-brain/services/tokenize"
-	"github.com/The20PerCentYouNeed/custom-ai-brain/utils"
+	tokenizer "github.com/The20PerCentYouNeed/custom-ai-brain/services/tokenizers"
 )
 
 type Document struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
-	FileID    uint      `gorm:"index"`
-	File      File      `gorm:"constraint:OnDelete:CASCADE;"`
-	Title     string    `json:"title"`
+	ID    uint   `json:"id" gorm:"primaryKey"`
+	Title string `json:"title"`
+
+	FileID *uint `json:"file_id" gorm:"index"`
+	File   *File `json:"file" gorm:"constraint:OnDelete:CASCADE;"`
+
+	Content string `json:"content" gorm:"type:text;not null;"`
+
 	Chunks    []Chunk   `json:"chunks" gorm:"foreignKey:DocumentID"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func (d *Document) GenerateChunks() error {
+func (document *Document) Chunk(chunkSize int, overlap int) error {
 
-	path := filepath.Join(utils.StoragePath(), "files", d.File.Uri)
-
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	chunks, err := tokenizer.ChunkText(string(content), 500, 50)
+	tokens, err := tokenizer.Tokenize(document.Content)
 
 	if err != nil {
 		return err
 	}
 
-	var chunkTexts []string
-	for _, chunk := range chunks {
-		chunkTexts = append(chunkTexts, chunk.Text)
+	var chunks []string
+
+	for start := 0; start < len(tokens); start += chunkSize - overlap {
+		end := min(start+chunkSize, len(tokens))
+
+		chunkText := strings.ReplaceAll(strings.Join(tokens[start:end], ""), "\u2581", " ")
+		chunks = append(chunks, chunkText)
+
+		if end == len(tokens) {
+			break
+		}
+
 	}
 
-	vectors, err := openai.GenerateEmbeddings(chunkTexts)
+	vectors, err := openai.GenerateEmbeddings(chunks)
 	if err != nil {
 		return err
 	}
@@ -48,12 +52,12 @@ func (d *Document) GenerateChunks() error {
 	documentChunks := make([]Chunk, len(chunks))
 	for i, chunk := range chunks {
 		documentChunks[i] = Chunk{
-			StartOffset: chunk.StartOffset,
-			EndOffset:   chunk.EndOffset,
-			Embedding:   vectors[i],
+			Content:   chunk,
+			Embedding: vectors[i],
 		}
 	}
 
-	d.Chunks = documentChunks
+	document.Chunks = documentChunks
+
 	return nil
 }

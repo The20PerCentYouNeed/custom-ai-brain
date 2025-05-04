@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 
 	"github.com/The20PerCentYouNeed/custom-ai-brain/db"
 	"github.com/The20PerCentYouNeed/custom-ai-brain/models"
@@ -25,80 +25,65 @@ func UploadFile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to open file"})
 		return
 	}
-
-	buf := make([]byte, 512)
-	_, err = src.Read(buf)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file"})
-		return
-	}
-
-	contentType := http.DetectContentType(buf)
-
-	types := []string{"application/pdf", "text/plain", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
-	if !slices.Contains(types, contentType) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported file type"})
-		return
-	}
+	defer src.Close()
 
 	path := filepath.Join(utils.StoragePath(), "files", file.Filename)
+
 	dst, err := os.Create(path)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create destination file"})
 		return
 	}
+	defer dst.Close()
 
-	if _, err := dst.Write(buf); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write initial bytes"})
+	if _, err := io.Copy(dst, src); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write file"})
 		return
 	}
 
-	remainingBytes, err := io.ReadAll(src)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read remaining bytes"})
-		return
-	}
-
-	if _, err := dst.Write(remainingBytes); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write remaining bytes"})
-		return
-	}
-
-	src.Close()
-	dst.Close()
+	contentType := filepath.Ext(file.Filename)
 
 	fileModel := models.File{
-		Type:     filepath.Ext(file.Filename),
+		Type:     contentType,
 		Source:   "files",
 		Uri:      file.Filename,
-		MimeType: contentType,
+		MimeType: mime.TypeByExtension(contentType),
 	}
 
+	var text string
+
 	switch contentType {
-	case "application/pdf":
-		fileModel.ExtractTextFromPDF()
-	case "text/plain":
-		fileModel.ExtractTextFromTXT()
-	case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-		fileModel.ExtractTextFromDOCX()
+	case ".pdf":
+		text, err = fileModel.ExtractTextFromPDF()
+	case ".txt":
+		text, err = fileModel.ExtractTextFromTXT()
+	case ".docx":
+		text, err = fileModel.ExtractTextFromDOCX()
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported file type"})
 		return
 	}
 
-	document := models.Document{
-		File: fileModel,
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
-	if err := document.GenerateChunks(); err != nil {
+	document := models.Document{
+		File:    &fileModel,
+		Content: text,
+	}
+
+	err = document.Chunk(300, 50)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := db.DB.Create(&document).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, document)
+	c.JSON(http.StatusCreated, gin.H{"message": "Document uploaded successfully"})
 }

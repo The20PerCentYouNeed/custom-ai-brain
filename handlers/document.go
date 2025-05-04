@@ -38,7 +38,7 @@ func CreateDocument(c *gin.Context) {
 		return
 	}
 
-	if err := document.GenerateChunks(); err != nil {
+	if err := document.Chunk(300, 50); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

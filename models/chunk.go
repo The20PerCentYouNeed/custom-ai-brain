@@ -7,13 +7,14 @@ import (
 )
 
 type Chunk struct {
-	ID          uint            `gorm:"primaryKey"`
-	DocumentID  uint            `gorm:"index;not null"`
-	Document    Document        `gorm:"constraint:OnDelete:CASCADE;"`
-	Title       string          `json:"title" gorm:"type:text;not null;collate:utf8mb4_unicode_ci"`
-	Embedding   pgvector.Vector `gorm:"type:vector(1536);not null"`
-	StartOffset int             `gorm:"not null"`
-	EndOffset   int             `gorm:"not null"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID         uint     `json:"id" gorm:"primaryKey"`
+	DocumentID uint     `json:"document_id" gorm:"index;not null"`
+	Document   Document `json:"document" gorm:"constraint:OnDelete:CASCADE;"`
+
+	Content string `json:"content" gorm:"type:text;not null;"`
+
+	Embedding pgvector.Vector `json:"embedding" gorm:"type:vector(1536);not null"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

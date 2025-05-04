@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,56 +22,24 @@ type File struct {
 }
 
 func (f *File) ExtractTextFromPDF() (string, error) {
-	path := filepath.Join(utils.StoragePath(), "files", f.Uri)
 
-	outputPath := path + ".txt"
+	storagePath := utils.StoragePath()
+	pdfPath := filepath.Join(storagePath, "files", f.Uri)
+	txtPath := pdfPath + ".txt"
 
-	f.Uri = f.Uri + ".txt"
+	cmd := exec.Command("pdftotext", "-layout", pdfPath, txtPath)
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
 
-	cmd := exec.Command("pdftotext", "-layout", "-enc", "UTF-8", path, outputPath)
-	err := cmd.Run()
+	content, err := os.ReadFile(txtPath)
 	if err != nil {
 		return "", err
 	}
 
-	content, err := os.ReadFile(outputPath)
-	if err != nil {
-		return "", err
-	}
+	cleanedText := sanitizeText(string(content))
 
-	// Clean/sanitize the text
-	cleaned := sanitizeText(string(content))
-
-	// Step 4: Overwrite the .txt file with the cleaned content
-	err = os.WriteFile(outputPath, []byte(cleaned), 0644)
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Println("cleaned", cleaned)
-	return cleaned, nil
-}
-
-func sanitizeText(input string) string {
-	// 1. Replace all tabs with a single space
-	input = strings.ReplaceAll(input, "\t", " ")
-
-	// 2. Replace multiple spaces with a single space
-	spaceRe := regexp.MustCompile(`\s+`)
-	input = spaceRe.ReplaceAllString(input, " ")
-
-	// 3. Split into lines and remove empty lines
-	lines := strings.Split(input, "\n")
-	var cleanedLines []string
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			cleanedLines = append(cleanedLines, line)
-		}
-	}
-
-	// 4. Join back the cleaned lines with a single newline
-	return strings.Join(cleanedLines, "\n")
+	return cleanedText, nil
 }
 
 func (f *File) ExtractTextFromTXT() (string, error) {
@@ -110,4 +77,23 @@ func (f *File) ExtractTextFromDOCX() (string, error) {
 
 	// return text.String(), nil
 	return "", nil
+}
+
+func sanitizeText(input string) string {
+	input = strings.ReplaceAll(input, "\t", " ")
+
+	spaceRe := regexp.MustCompile(`\s+`)
+	input = spaceRe.ReplaceAllString(input, " ")
+
+	lines := strings.Split(input, "\n")
+	cleanedLines := make([]string, 0, len(lines))
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if len(line) > 0 {
+			cleanedLines = append(cleanedLines, line)
+		}
+	}
+
+	return strings.Join(cleanedLines, "\n")
 }
