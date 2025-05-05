@@ -9,7 +9,7 @@ require (
 	github.com/pgvector/pgvector-go v0.3.0
 	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/sashabaranov/go-openai v1.38.2
-	github.com/unidoc/unioffice v1.31.0
+	github.com/unidoc/unioffice v1.39.0
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.26.0
 )
@@ -44,6 +44,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/nguyenthenguyen/docx v0.0.0-20230621112118-9c8e795a11db // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/richardlehane/msoleps v1.0.3 // indirect

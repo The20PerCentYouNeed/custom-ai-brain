@@ -3,7 +3,6 @@ package models
 import (
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -22,17 +21,23 @@ type File struct {
 }
 
 func (f *File) ExtractTextFromPDF() (string, error) {
+	filePath := utils.StoragePath("files", f.Uri)
 
-	storagePath := utils.StoragePath()
-	pdfPath := filepath.Join(storagePath, "files", f.Uri)
-	txtPath := pdfPath + ".txt"
-
-	cmd := exec.Command("pdftotext", "-layout", pdfPath, txtPath)
-	if err := cmd.Run(); err != nil {
+	cmd := exec.Command("pdftotext", "-layout", filePath, "-")
+	output, err := cmd.Output()
+	if err != nil {
 		return "", err
 	}
 
-	content, err := os.ReadFile(txtPath)
+	cleanedText := sanitizeText(string(output))
+
+	return cleanedText, nil
+}
+
+func (f *File) ExtractTextFromTXT() (string, error) {
+	filePath := utils.StoragePath("files", f.Uri)
+
+	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return "", err
 	}
@@ -42,41 +47,18 @@ func (f *File) ExtractTextFromPDF() (string, error) {
 	return cleanedText, nil
 }
 
-func (f *File) ExtractTextFromTXT() (string, error) {
-	// return content.String(), nil
-	return "", nil
-}
-
 func (f *File) ExtractTextFromDOCX() (string, error) {
-	// // Create a temporary file for the DOCX content
-	// tmpFile, err := os.CreateTemp("", "docx-*.docx")
-	// if err != nil {
-	// 	return "", err
-	// }
-	// defer os.Remove(tmpFile.Name())
-	// defer tmpFile.Close()
+	filePath := utils.StoragePath("files", f.Uri)
 
-	// // Write the content to the temporary file
-	// if _, err := tmpFile.Write(); err != nil {
-	// 	return "", err
-	// }
+	cmd := exec.Command("pandoc", filePath, "-t", "plain")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
 
-	// doc, err := document.Open(tmpFile.Name())
-	// if err != nil {
-	// 	return "", err
-	// }
-	// defer doc.Close()
+	cleanedText := sanitizeText(string(output))
 
-	// var text bytes.Buffer
-	// for _, para := range doc.Paragraphs() {
-	// 	for _, run := range para.Runs() {
-	// 		text.WriteString(run.Text())
-	// 	}
-	// 	text.WriteString("\n")
-	// }
-
-	// return text.String(), nil
-	return "", nil
+	return cleanedText, nil
 }
 
 func sanitizeText(input string) string {
