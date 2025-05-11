@@ -41,7 +41,6 @@ func (document *Document) Chunk(chunkSize int, overlap int) error {
 		if end == len(tokens) {
 			break
 		}
-
 	}
 
 	vectors, err := openai.GenerateEmbeddings(chunks)
