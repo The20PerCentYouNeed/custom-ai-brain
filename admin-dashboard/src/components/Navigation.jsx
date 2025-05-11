@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { Home, Upload, Book, X, Menu, MessageCircle } from "lucide-react";
+import { Home, Book, X, Menu, MessageCircle, Folder } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Navigation() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const openDropdown = () => setIsDropdownOpen(true);
+  const closeDropdown = () => setIsDropdownOpen(false);
 
   const SidebarContent = () => (
     <div className="w-64 bg-gray-900 text-white flex flex-col h-full">
@@ -19,17 +23,49 @@ export default function Navigation() {
         </button>
       </div>
       <nav className="flex-1 p-4 space-y-4">
-        <Link to="/" className="flex items-center gap-2 hover:text-blue-400">
-            <Home size={20} /> Home
+        <Link
+          to="/"
+          onClick={closeDropdown}
+          className="flex items-center gap-2 hover:text-blue-400"
+        >
+          <Home size={20} /> Home
         </Link>
-        <Link to="/upload" className="flex items-center gap-2 hover:text-blue-400">
-            <Upload size={20} /> Upload Files
+
+        <div className="block">
+          <button
+            onClick={openDropdown}
+            className="flex items-center justify-between w-full hover:text-blue-400"
+          >
+            <Link to="/documents" className="flex items-center gap-2 hover:text-blue-400">
+                <Folder size={20} /> Documents
+            </Link>
+          </button>
+
+          {isDropdownOpen && (
+            <div className="ml-6 mt-3 space-y-2 text-sm">
+              <Link to="/documents/chunks" className="block hover:text-blue-400">
+                Chunks
+              </Link>
+              <Link to="/documents/files" className="block hover:text-blue-400">
+                Files
+              </Link>
+            </div>
+          )}
+        </div>
+
+        <Link
+          to="/chat"
+          onClick={closeDropdown}
+          className="flex items-center gap-2 hover:text-blue-400"
+        >
+          <MessageCircle size={20} /> Chat With AI
         </Link>
-        <Link to="/chat" className="flex items-center gap-2 hover:text-blue-400">
-            <MessageCircle size={20} /> Chat With AI
-        </Link>
-        <Link to="/knowledge" className="flex items-center gap-2 hover:text-blue-400">
-            <Book size={20} /> Knowledge Base
+        <Link
+          to="/knowledge"
+          onClick={closeDropdown}
+          className="flex items-center gap-2 hover:text-blue-400"
+        >
+          <Book size={20} /> Knowledge Base
         </Link>
       </nav>
     </div>

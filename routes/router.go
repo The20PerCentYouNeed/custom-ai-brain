@@ -5,8 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter() *gin.Engine {
-	r := gin.Default()
+func SetupRouter(r *gin.Engine) {
 
 	r.GET("/ping", handlers.PingHandler)
 
@@ -20,6 +19,4 @@ func SetupRouter() *gin.Engine {
 	r.DELETE("/documents/:id", handlers.DestroyDocument)
 
 	r.POST("/documents/upload", handlers.UploadFile)
-
-	return r
 }

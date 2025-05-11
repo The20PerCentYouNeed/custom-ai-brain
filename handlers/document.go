@@ -11,7 +11,7 @@ import (
 func GetDocuments(c *gin.Context) {
 	var documents []models.Document
 
-	if err := db.DB.Find(&documents).Error; err != nil {
+	if err := db.DB.Preload("File").Find(&documents).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
